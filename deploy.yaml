@@ -1,9 +1,7 @@
 name: CI/CD - Build & Push Frontend & Backend
 
-on:
-  push:
-    branches:
-      - deploy
+on: [push]
+
 
 jobs:
   build-and-push:
