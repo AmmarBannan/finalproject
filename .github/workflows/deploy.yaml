@@ -26,23 +26,23 @@ jobs:
       # Build Backend
       # -----------------------
       - name: Install backend dependencies
-        working-directory: backend
+        working-directory: server
 
         run: npm install
 
       - name: Build backend
-        working-directory: backend
+        working-directory: server
         run: npm run build || echo "No backend build step"
 
       # -----------------------
       # Build Frontend
       # -----------------------
       - name: Install frontend dependencies
-        working-directory: frontend
+        working-directory: web
         run: npm install
 
       - name: Build frontend
-        working-directory: frontend
+        working-directory: web
         run: npm run build
 
       # -----------------------
