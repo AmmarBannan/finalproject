@@ -3,7 +3,9 @@ name: CI/CD - Build, Push & Deploy
 on:
   push:
     branches:
-      - main  # or whichever branch you want to trigger deploy
+    - main
+    - deploy
+
 
 jobs:
   build-and-deploy:
