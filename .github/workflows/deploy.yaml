@@ -1,10 +1,12 @@
-name: CI/CD - Build & Push Frontend & Backend
+name: CI/CD - Build, Push & Deploy
 
-on: [push]
-
+on:
+  push:
+    branches:
+      - main  # or whichever branch you want to trigger deploy
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -15,7 +17,7 @@ jobs:
         uses: actions/checkout@v3
 
       # -----------------------
-      # Setup Node.js (for build steps)
+      # Setup Node.js
       # -----------------------
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -27,7 +29,6 @@ jobs:
       # -----------------------
       - name: Install backend dependencies
         working-directory: server
-
         run: npm install
 
       - name: Build backend
@@ -55,25 +56,46 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # -----------------------
-      # Build Backend Image
+      # Build & Push Docker Images
       # -----------------------
-      - name: Build Backend Docker image
-        run: |
-          docker build \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest \
-            server
+      - name: Build Backend Docker Image
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest server
 
       - name: Push Backend Image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
 
-      # -----------------------
-      # Build Frontend Image
-      # -----------------------
-      - name: Build Frontend Docker image
-        run: |
-          docker build \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest \
-            web
+      - name: Build Frontend Docker Image
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest web
 
       - name: Push Frontend Image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
+
+      # -----------------------
+      # Configure AWS Credentials for EKS
+      # -----------------------
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2  # change to your region
+
+      # -----------------------
+      # Install kubectl
+      # -----------------------
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+      # -----------------------
+      # Update kubeconfig to access your EKS cluster
+      # -----------------------
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name my-eks-cluster
+
+      # -----------------------
+      # Deploy Kubernetes Manifests from k8s folder
+      # -----------------------
+      - name: Deploy to EKS
+        run: kubectl apply -f k8s/

@@ -1,0 +1,18 @@
+update kubectl :
+		kubectl apply -f k8s/frontend-deployment.yaml
+
+update kubectl to a new docker image:
+		kubectl set image deployment/frontend-deployment frontend=YOUR_DOCKERHUB_USERNAME/frontend:latest
+
+
+to listen to svs port:
+		kubectl port-forward svc/backend-service 3000:3000
+
+
+kubectl build:
+		kubectl apply -f k8s/
+
+
+kubectl apply -f k8s/ingress.yaml
+
+
