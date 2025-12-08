@@ -16,3 +16,10 @@ kubectl build:
 kubectl apply -f k8s/ingress.yaml
 
 
+
+nslookup backend-service
+
+
+
+kubectl status pods:
+		kubectl rollout status deployment/frontend-deployment

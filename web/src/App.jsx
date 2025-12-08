@@ -5,7 +5,8 @@ export default function App() {
 
   const fetchBackend = async () => {
     try {
-      const res = await fetch("http://localhost:3000/api/hello");
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+      const res = await fetch(`${apiUrl}/api/hello`);
       const data = await res.json();
       setMessage(data.message);
     } catch (err) {

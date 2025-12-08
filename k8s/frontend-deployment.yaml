@@ -18,5 +18,7 @@ spec:
         ports:
         - containerPort: 4173
         env:
+        # For in-cluster communication, use backend-service
+        # For local testing with port-forward, use http://localhost:3000
         - name: VITE_API_URL
           value: "http://backend-service:3000"
