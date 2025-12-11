@@ -1,0 +1,122 @@
+ Created Files in k8s/ Directory
+
+  Kubernetes Manifests
+
+  1. backend-deployment.yaml - Backend deployment with 2 replicas
+  2. backend-service.yaml - Backend ClusterIP service
+  3. frontend-deployment.yaml - Frontend deployment with 2 replicas
+  4. frontend-service.yaml - Frontend ClusterIP service
+  5. ingress.yaml - NGINX ingress for routing traffic
+
+  Deployment Scripts
+
+  6. deploy.sh - Automated deployment script
+  7. nginx-ingress-install.sh - NGINX Ingress Controller installer
+  8. COMMANDS.md - Comprehensive kubectl command reference
+  9. README.md - Complete documentation
+
+  Quick Start - Deploy to Your Running EKS
+
+  # 1. Configure kubectl for your EKS cluster
+  aws eks update-kubeconfig --name my-eks-cluster --region us-west-2
+
+  # 2. Verify connection
+  kubectl get nodes
+
+  # 3. Deploy everything (automated)
+  cd k8s
+  chmod +x deploy.sh
+  ./deploy.sh
+
+  What Gets Deployed
+
+  AWS Load Balancer (Public)
+           ↓
+  NGINX Ingress Controller
+      ↓           ↓
+      /api/*      /*
+      ↓           ↓
+  Backend      Frontend
+  (2 pods)     (2 pods)
+
+  Key Commands for Checking Output
+
+  Check Everything
+
+  kubectl get all                    # All resources
+  kubectl get pods                   # All pods
+  kubectl get svc                    # All services
+  kubectl get ingress                # Ingress status
+
+  Check Backend
+
+  kubectl get pods -l app=backend    # Backend pods
+  kubectl logs -l app=backend        # Backend logs
+  kubectl describe deployment backend-deployment
+
+  Check Frontend
+
+  kubectl get pods -l app=frontend   # Frontend pods
+  kubectl logs -l app=frontend       # Frontend logs
+  kubectl describe deployment frontend-deployment
+
+  Get LoadBalancer URL (Your Public URL)
+
+  kubectl get svc -n ingress-nginx ingress-nginx-controller
+
+  # Or get the URL directly
+  LOADBALANCER_URL=$(kubectl get service ingress-nginx-controller -n ingress-nginx -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+  echo "App URL: http://${LOADBALANCER_URL}"
+
+  Monitor Deployment Progress
+
+  kubectl get pods -w                # Watch pods
+  kubectl rollout status deployment/backend-deployment
+  kubectl rollout status deployment/frontend-deployment
+
+  Troubleshooting
+
+  kubectl describe pod <pod-name>    # Pod details
+  kubectl logs <pod-name>            # Pod logs
+  kubectl logs -f <pod-name>         # Follow logs
+  kubectl get events --sort-by=.metadata.creationTimestamp
+
+  Architecture Details
+
+  - Replicas: 2 pods each for backend and frontend (high availability)
+  - Services: ClusterIP (internal communication)
+  - Ingress: Routes /api/* to backend, /* to frontend
+  - LoadBalancer: AWS ELB automatically provisioned by NGINX Ingress
+  - Health Checks: Liveness and readiness probes configured
+  - Resources: CPU and memory limits set
+
+  What Happens When You Deploy
+
+  1. NGINX Ingress Controller installs (creates AWS LoadBalancer)
+  2. Backend deploys with 2 replicas
+  3. Frontend deploys with 2 replicas
+  4. Services create internal endpoints
+  5. Ingress routes traffic from LoadBalancer to services
+  6. AWS provisions an Application Load Balancer (2-3 minutes)
+  7. Your app becomes accessible via the LoadBalancer URL
+
+  Next Steps
+
+  After deployment:
+  1. Get the LoadBalancer URL
+  2. Test your application: curl http://<loadbalancer-url>/
+  3. Test the API: curl http://<loadbalancer-url>/api
+  4. Monitor with: kubectl get pods -w
+
+  All detailed commands and troubleshooting steps are in k8s/COMMANDS.md!
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Showing detailed transcript · ctrl+o to toggle
+
+
+
+
+git checkout main
+git pull origin main
+git merge --ff-only test
+git push origin main
