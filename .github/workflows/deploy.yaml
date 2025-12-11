@@ -1,0 +1,100 @@
+name: CI/CD - Build, Push & Deploy (GHCR + DockerHub)
+
+on:
+  push:
+    branches:
+      - main
+      - deploy
+      - test
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # -----------------------
+      # Checkout repository
+      # -----------------------
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # -----------------------
+      # Login to GHCR
+      # -----------------------
+      - name: Login to GHCR
+        run: echo "${{ secrets.project_devobs_token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      # -----------------------
+      # Build & Push Docker Images to GHCR (SHA tag)
+      # -----------------------
+      - name: Build & Push Backend GHCR
+        run: |
+          docker build -t ghcr.io/ammarbannan/backend:${{ github.sha }} server
+          docker push ghcr.io/ammarbannan/backend:${{ github.sha }}
+          docker tag ghcr.io/ammarbannan/backend:${{ github.sha }} ghcr.io/ammarbannan/backend:latest
+          docker push ghcr.io/ammarbannan/backend:latest
+
+      - name: Build & Push Frontend GHCR
+        run: |
+          docker build -t ghcr.io/ammarbannan/frontend:${{ github.sha }} web
+          docker push ghcr.io/ammarbannan/frontend:${{ github.sha }}
+          docker tag ghcr.io/ammarbannan/frontend:${{ github.sha }} ghcr.io/ammarbannan/frontend:latest
+          docker push ghcr.io/ammarbannan/frontend:latest
+
+      # -----------------------
+      # Login to Docker Hub
+      # -----------------------
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # -----------------------
+      # Build & Push Docker Images to Docker Hub (SHA tag)
+      # -----------------------
+      - name: Build & Push Backend Docker Hub
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }} server
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
+          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
+
+      - name: Build & Push Frontend Docker Hub
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }} web
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }}
+          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/frontend:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/frontend:latest
+
+      # -----------------------
+      # Configure AWS Credentials for EKS
+      # -----------------------
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      # -----------------------
+      # Install kubectl
+      # -----------------------
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+      # -----------------------
+      # Update kubeconfig
+      # -----------------------
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name my-eks-cluster
+
+      # -----------------------
+      # Deploy to EKS (use SHA tag images)
+      # -----------------------
+      - name: Deploy Backend & Frontend
+        run: |
+          kubectl set image deployment/backend-deployment backend=ghcr.io/ammarbannan/backend:${{ github.sha }}
+          kubectl set image deployment/frontend-deployment frontend=ghcr.io/ammarbannan/frontend:${{ github.sha }}
